@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet author="hasegawa" id="1">
+        <createTable catalogName="di" schemaName="public" tableName="steps">
+            <column name="id" type="uuid">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="position" type="int">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="title" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="timeConcluded" type="bigint">
+                <constraints nullable="true"/>
+            </column>
+        </createTable>
+        <createTable catalogName="di" schemaName="public" tableName="links">
+            <column name="steps_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="steps_id_fk" references="steps(id)"/>
+            </column>
+            <column name="title" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="url" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="timeCreated" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet id="3" author="hasegawa">
+        <dropUniqueConstraint tableName="steps" uniqueColumns="position" constraintName="steps_position_key"/>
+    </changeSet>
+    <changeSet id="4" author="hasegawa">
+        <renameColumn tableName="steps" oldColumnName="timeConcluded" newColumnName="time_completed"/>
+    </changeSet>
+    <changeSet id="5" author="hasegawa">
+        <renameColumn tableName="links" oldColumnName="timeCreated" newColumnName="time_created"/>
+    </changeSet>
+    <changeSet id="6" author="hasegawa">
+        <addColumn tableName="links">
+            <column name="id" type="uuid" beforeColumn="steps_id">
+                <constraints primaryKey="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet id="7" author="hasegawa">
+        <createTable tableName="users">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="username" type="text">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="password" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="role_level" type="int">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet id="8" author="hasegawa">
+        <renameColumn tableName="users" oldColumnName="password" newColumnName="password_hash"/>
+        <addColumn tableName="users">
+            <column name="public_name" type="text"/>
+        </addColumn>
+        <sql>
+            update users u set public_name = (select username from users k where k.id=u.id)
+        </sql>
+        <addNotNullConstraint tableName="users" columnName="public_name"/>
+        <addUniqueConstraint tableName="users" columnNames="public_name"/>
+        <addColumn tableName="steps">
+            <column name="users_id" type="uuid">
+                <constraints foreignKeyName="users_id_fk" references="users(id)"/>
+            </column>
+            <column name="published" type="bool"/>
+        </addColumn>
+        <sql>
+            update steps set users_id = (select id from users limit 1)
+        </sql>
+        <addNotNullConstraint tableName="steps" columnName="users_id"/>
+        <sql>
+            update steps set published=false
+        </sql>
+        <addNotNullConstraint tableName="steps" columnName="published"/>
+    </changeSet>
+
+    <changeSet id="9" author="hasegawaw">
+        <addColumn tableName="links">
+            <column name="published" type="boolean"/>
+            <column name="users_id" type="uuid">
+                <constraints foreignKeyName="users_id_fk" references="users(id)"/>
+            </column>
+        </addColumn>
+        <sql>
+            update links set users_id = (select id from users limit 1)
+        </sql>
+        <addNotNullConstraint tableName="links" columnName="users_id"/>
+        <sql>
+            update links set published=false
+        </sql>
+        <addNotNullConstraint tableName="links" columnName="published"/>
+    </changeSet>
+
+    <changeSet id="10" author="hasegawa">
+        <createTable tableName="steps_history">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="steps_id" type="uuid">
+                <constraints foreignKeyName="steps_id_fk" references="steps(id)" nullable="false"/>
+            </column>
+            <column name="users_id" type="uuid">
+                <constraints foreignKeyName="users_id_fk" references="users(id)" nullable="false"/>
+            </column>
+            <column name="position" type="int4">
+                <constraints nullable="false"/>
+            </column>
+            <column name="title" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="published" type="bool">
+                <constraints nullable="false"/>
+            </column>
+            <column name="time_completed" type="bigint"/>
+            <column name="time_changed" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createTable tableName="links_history">
+            <column name="links_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="links_id_fk" references="links(id)"/>
+            </column>
+            <column name="title" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="url" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="published" type="bool">
+                <constraints nullable="false"/>
+            </column>
+            <column name="time_created" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="time_changed" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet id="11" author="hasegawa">
+        <addColumn tableName="links_history">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet id="12" author="hasegawa">
+        <addColumn tableName="links_history">
+            <column name="users_id" type="uuid">
+                <constraints foreignKeyName="users_id_fk" references="users(id)" nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet id="13" author="hasegawa">
+        <createTable tableName="important_news">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="users_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="users_id_fk" references="users(id)"/>
+            </column>
+            <column name="title" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="url" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="published" type="bool">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tldr" type="text"/>
+            <column name="app_message" type="text"/>
+            <column name="send_app_notification" type="bool">
+                <constraints nullable="false"/>
+            </column>
+            <column name="time_created" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createTable tableName="important_news_history">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="important_news_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="important_news_id_fk" references="important_news(id)"/>
+            </column>
+            <column name="users_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="users_id_fk" references="users(id)"/>
+            </column>
+            <column name="title" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="url" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="published" type="bool">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tldr" type="text"/>
+            <column name="app_message" type="text"/>
+            <column name="send_app_notification" type="bool">
+                <constraints nullable="false"/>
+            </column>
+            <column name="time_created" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="time_changed" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet id="14" author="hasegawa">
+        <dropColumn tableName="steps" columnName="time_completed"/>
+        <dropColumn tableName="steps_history" columnName="time_completed"/>
+        <addColumn tableName="steps">
+            <column name="completed" type="bool" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <addColumn tableName="steps_history">
+            <column name="completed" type="bool" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <addColumn tableName="steps">
+            <column name="possible_date" type="text" defaultValue="">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <addColumn tableName="steps_history">
+            <column name="possible_date" type="text" defaultValue="">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet id="15" author="hasegawa">
+        <createTable tableName="gcm_tokens">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="token" type="text">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="time_created" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet id="16" author="hasegawa">
+        <createIndex tableName="gcm_tokens" indexName="gcm_tokens_token_index" unique="true">
+            <column name="token" type="text"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>
