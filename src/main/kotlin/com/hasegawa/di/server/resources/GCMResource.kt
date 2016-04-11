@@ -16,23 +16,26 @@
 package com.hasegawa.di.server.resources
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.hasegawa.di.server.GCMControl
 import com.hasegawa.di.server.daos.GCMDao
 import com.hasegawa.di.server.utils.toUnixTimestamp
 import io.dropwizard.validation.Validated
 import org.joda.time.DateTime
 import java.util.UUID
+import javax.servlet.http.HttpServletRequest
 import javax.ws.rs.Consumes
 import javax.ws.rs.OPTIONS
 import javax.ws.rs.POST
 import javax.ws.rs.Path
 import javax.ws.rs.Produces
+import javax.ws.rs.core.Context
 import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
 
 @Path("/gcm")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
-class GCMResource(val gcmDao: GCMDao) {
+class GCMResource(val gcmDao: GCMDao, val gcmControl: GCMControl) {
 
     @OPTIONS
     fun corsPreflight() = Response.ok().build()
@@ -43,12 +46,18 @@ class GCMResource(val gcmDao: GCMDao) {
 
     @POST
     @Path("/tokens")
-    fun postToken(@Validated body: TokenPost): Response {
-        gcmDao.insertToken(
-                UUID.randomUUID(),
-                body.token!!,
-                DateTime.now().toUnixTimestamp()
-        )
-        return Response.ok().build()
+    fun postToken(@Context request: HttpServletRequest,
+                  @Validated body: TokenPost): Response {
+        if (body.token != null) {
+            if (gcmControl.blockingValidateToken(body.token!!, request)) {
+                gcmDao.insertToken(
+                        UUID.randomUUID(),
+                        body.token!!,
+                        DateTime.now().toUnixTimestamp()
+                )
+                return Response.ok().build()
+            }
+        }
+        return Response.notModified().build()
     }
 }

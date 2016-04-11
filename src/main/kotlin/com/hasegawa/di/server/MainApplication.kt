@@ -114,7 +114,7 @@ class MainApplication : Application<ServerConfiguration>() {
         environment.jersey().register(StepsResource(stepsDao, linksDao, gcmControl))
         environment.jersey().register(CommandsResource())
         environment.jersey().register(ImportantNewsResource(importantNewsDao, gcmControl))
-        environment.jersey().register(GCMResource(gcmDao))
+        environment.jersey().register(GCMResource(gcmDao, gcmControl))
 
         environment.jersey().register(LoggingFilter(Logger.getLogger("InboundRequestResponse"), true));
 
