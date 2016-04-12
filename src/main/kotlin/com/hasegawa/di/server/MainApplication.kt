@@ -16,6 +16,7 @@
 package com.hasegawa.di.server
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.hasegawa.di.server.GCMControl.GCMControlConfig
 import com.hasegawa.di.server.auths.DiAuthenticator
 import com.hasegawa.di.server.auths.DiAuthorizer
 import com.hasegawa.di.server.auths.DiUnauthorizedHandler
@@ -97,7 +98,13 @@ class MainApplication : Application<ServerConfiguration>() {
         val importantNewsDao = jdbi.onDemand(ImportantNewsDao::class.java)
         val gcmDao = jdbi.onDemand(GCMDao::class.java)
 
-        val gcmControl = GCMControl(configuration.gcmKey!!, client)
+        val gcmControlConfig = GCMControlConfig(
+                configuration.gcmKey!!,
+                configuration.gcmInvalidTokensBeforeBan!!,
+                configuration.gcmTimeSpanToStoreInvalidTokens!!,
+                configuration.gcmTempBanCsfTimeInSeconds!!)
+
+        val gcmControl = GCMControl(gcmControlConfig, client)
         environment.lifecycle().manage(gcmControl)
 
         environment.jersey().register(AuthDynamicFeature(

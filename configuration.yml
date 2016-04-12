@@ -1,5 +1,13 @@
 gcmKey: ${env.DI_GCM_KEY}
 
+gcmInvalidTokensBeforeBan: 10
+
+# Time in seconds
+gcmTimeSpanToStoreInvalidTokens: 86400
+
+# String of time accepted by Csf
+gcmTempBanCsfTimeInSeconds: 86400
+
 server:
   applicationContextPath: /
   rootPath: /api

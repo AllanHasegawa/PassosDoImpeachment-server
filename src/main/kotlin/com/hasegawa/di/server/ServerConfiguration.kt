@@ -26,6 +26,15 @@ class ServerConfiguration : Configuration() {
     @JsonProperty
     var gcmKey: String? = null
 
+    @JsonProperty
+    var gcmInvalidTokensBeforeBan: Int? = null
+
+    @JsonProperty
+    var gcmTimeSpanToStoreInvalidTokens: Long? = null
+
+    @JsonProperty
+    var gcmTempBanCsfTimeInSeconds: Long? = null
+
     @Valid
     @NotNull
     @JsonProperty("database")

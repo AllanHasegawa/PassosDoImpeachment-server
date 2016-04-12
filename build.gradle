@@ -44,6 +44,8 @@ dependencies {
     compile 'de.thomaskrille:dropwizard-template-config:1.2.0'
     compile 'org.mindrot:jbcrypt:0.3m'
     compile 'io.reactivex:rxjava:1.1.2'
+    compile 'commons-validator:commons-validator:1.5.0'
+
 }
 
 String configFile() {

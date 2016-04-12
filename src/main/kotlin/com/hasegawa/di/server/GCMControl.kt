@@ -16,6 +16,7 @@
 package com.hasegawa.di.server
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.hasegawa.di.server.utils.CsfUtils
 import com.hasegawa.di.server.utils.toUnixTimestamp
 import io.dropwizard.lifecycle.Managed
 import org.glassfish.jersey.client.ClientProperties
@@ -25,18 +26,22 @@ import rx.Observer
 import rx.Subscription
 import rx.schedulers.Schedulers
 import rx.subjects.PublishSubject
-import java.io.BufferedReader
-import java.io.InputStreamReader
 import java.util.ArrayList
 import java.util.HashMap
-import java.util.concurrent.TimeUnit
 import javax.servlet.http.HttpServletRequest
 import javax.ws.rs.client.Client
 import javax.ws.rs.client.Entity
 import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
 
-class GCMControl(val gcmKey: String, val client: Client) : Managed {
+class GCMControl(val config: GCMControlConfig, val client: Client) : Managed {
+
+    data class GCMControlConfig(
+            val gcmKey: String,
+            val invalidTokensBeforeBan: Int,
+            val timeSpanInvalidTokens: Long,
+            val tempBanCsfTimeInSeconds: Long
+    )
 
     private var gcmSendToClientsSubscription: Subscription? = null
     private val gcmToClientsSubject: PublishSubject<Any> = PublishSubject.create()
@@ -57,7 +62,7 @@ class GCMControl(val gcmKey: String, val client: Client) : Managed {
                             .target(GCM_TARGET)
                             .path(GCM_PATH)
                             .request(MediaType.APPLICATION_JSON)
-                            .header("Authorization", "key=$gcmKey")
+                            .header("Authorization", "key=${config.gcmKey}")
                             .header("Content-Type", MediaType.APPLICATION_JSON)
                             .post(Entity.entity(it, MediaType.APPLICATION_JSON))
                     response
@@ -128,7 +133,7 @@ class GCMControl(val gcmKey: String, val client: Client) : Managed {
                 .target(GCM_TARGET)
                 .path(GCM_PATH)
                 .request(MediaType.APPLICATION_JSON)
-                .header("Authorization", "key=$gcmKey")
+                .header("Authorization", "key=${config.gcmKey}")
                 .header("Content-Type", MediaType.APPLICATION_JSON)
                 .post(Entity.entity(SendToken(token, true), MediaType.APPLICATION_JSON))
         if (response != null && response.status == Response.Status.OK.statusCode) {
@@ -138,7 +143,7 @@ class GCMControl(val gcmKey: String, val client: Client) : Managed {
                 log.error("GCM Invalid Token Response: " + dryRunResponse.toString())
                 synchronized(invalidTokensIpsLock) {
                     val numberOfInvalidations = ipToNumberOfInvalidations(request)
-                    if (numberOfInvalidations >= MAX_NUMBER_OF_INVALID_TOKENS) {
+                    if (numberOfInvalidations >= config.invalidTokensBeforeBan) {
                         tempBanIpWithCsf(request)
                     }
                 }
@@ -154,7 +159,7 @@ class GCMControl(val gcmKey: String, val client: Client) : Managed {
         val filteredList = ArrayList<Long>()
         val now = DateTime.now().toUnixTimestamp()
         invalidTokensIps[ip]?.filterTo(filteredList) {
-            it > (now - TIMESPAN_FOR_INVALID_TOKENS)
+            it > (now - config.timeSpanInvalidTokens)
         }
         filteredList.add(now)
         invalidTokensIps.put(ip, filteredList)
@@ -164,21 +169,8 @@ class GCMControl(val gcmKey: String, val client: Client) : Managed {
     private fun tempBanIpWithCsf(request: HttpServletRequest) {
         log.info("Temporary banning: ${request.remoteHost} (${request.remoteAddr}:${request.remotePort})")
         val ip = request.remoteAddr
-        try {
-            val process = Runtime.getRuntime().exec("csf -td $ip $IP_TEMP_BAN_TIME")
-            val input = BufferedReader(InputStreamReader(process.inputStream))
-            var line: String? = null
-            while (true) {
-                line = input.readLine()
-                if (line == null) {
-                    break
-                }
-                log.info(line)
-            }
-            process.waitFor(10, TimeUnit.SECONDS)
-        } catch (e: Exception) {
-            log.error("Error trying to run CSF to ban ip.", e)
-        }
+        val output = CsfUtils.tempBanIp(ip, config.tempBanCsfTimeInSeconds)
+        log.info(output)
     }
 
     companion object {
@@ -188,9 +180,5 @@ class GCMControl(val gcmKey: String, val client: Client) : Managed {
         private const val GCM_TARGET = "https://gcm-http.googleapis.com"
         private const val GCM_PATH = "gcm/send"
         private const val GCM_TIMEOUT = 33 * 1000
-
-        private const val MAX_NUMBER_OF_INVALID_TOKENS = 10
-        private const val TIMESPAN_FOR_INVALID_TOKENS = 24 * 60 * 60 * 1000
-        private const val IP_TEMP_BAN_TIME = "24h"
     }
 }
