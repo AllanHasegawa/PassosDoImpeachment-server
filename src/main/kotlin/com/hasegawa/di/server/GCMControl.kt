@@ -26,7 +26,6 @@ import rx.Observer
 import rx.Subscription
 import rx.schedulers.Schedulers
 import rx.subjects.PublishSubject
-import java.util.ArrayList
 import java.util.HashMap
 import javax.servlet.http.HttpServletRequest
 import javax.ws.rs.client.Client
@@ -48,7 +47,7 @@ class GCMControl(val config: GCMControlConfig, val client: Client) : Managed {
 
     // key = ip as String
     // value = List of unix time stamps
-    private val invalidTokensIps = HashMap<String, ArrayList<Long>>()
+    private val invalidTokensIps = HashMap<String, MutableList<Long>>()
     private val invalidTokensIpsLock = Any()
 
     override fun start() {
@@ -156,14 +155,18 @@ class GCMControl(val config: GCMControlConfig, val client: Client) : Managed {
 
     private fun ipToNumberOfInvalidations(request: HttpServletRequest): Int {
         val ip = request.remoteAddr
-        val filteredList = ArrayList<Long>()
         val now = DateTime.now().toUnixTimestamp()
-        invalidTokensIps[ip]?.filterTo(filteredList) {
+        val filteredList = invalidTokensIps[ip]?.filter {
             it > (now - config.timeSpanInvalidTokens)
+        }?.toMutableList()
+        if (filteredList == null) {
+            invalidTokensIps[ip] = mutableListOf(now)
+            return 1
+        } else {
+            filteredList.add(now)
+            invalidTokensIps.put(ip, filteredList)
+            return filteredList.size
         }
-        filteredList.add(now)
-        invalidTokensIps.put(ip, filteredList)
-        return filteredList.size
     }
 
     private fun tempBanIpWithCsf(request: HttpServletRequest) {
