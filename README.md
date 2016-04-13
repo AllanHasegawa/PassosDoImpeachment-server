@@ -18,8 +18,10 @@ A *full* **demo** RESTful service to server data to the [Passos do Impeachment A
     # or to automatically build the webapp:
     $ npm run autopackage
     ```
+    
+6. Add the server URL (the same used in `configuration.yml`) to the `ServerInfo.js` file. This is the URL the web app will use to fetch the data.
 
-6. Go back to the root directory of the project (where `configuration.yml` is located), and run the database migrations:
+7. Go back to the root directory of the project (where `configuration.yml` is located), and run the database migrations:
 
     ```
     # Check if everything is ready to migrate
@@ -28,7 +30,7 @@ A *full* **demo** RESTful service to server data to the [Passos do Impeachment A
     $ ./gradlew dbMigrate
     ```
 
-7. Run the server :)
+8. Run the server :)
 
     ```
     $ ./gradlew run
