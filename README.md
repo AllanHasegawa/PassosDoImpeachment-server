@@ -11,26 +11,28 @@ A *full* **demo** RESTful service to server data to the [Passos do Impeachment A
 4. Install node.
 5. Go to the `src/main/resources/webapp` folder and:
 
-
-      $ npm install
-      # To build once:
-      $ npm run package
-      # or to automatically build the webapp:
-      $ npm run autopackage
+    ```
+    $ npm install
+    # To build once:
+    $ npm run package
+    # or to automatically build the webapp:
+    $ npm run autopackage
+    ```
 
 6. Go back to the root directory of the project (where `configuration.yml` is located), and run the database migrations:
 
-
-      # Check if everything is ready to migrate
-      $ ./gradlew dbStatus
-      # If okay, then proceed with the migration
-      $ ./gradlew dbMigrate
+    ```
+    # Check if everything is ready to migrate
+    $ ./gradlew dbStatus
+    # If okay, then proceed with the migration
+    $ ./gradlew dbMigrate
+    ```
 
 7. Run the server :)
 
-
-      $ ./gradlew run
-
+    ```
+    $ ./gradlew run
+    ```
 
 ### Extra
 
