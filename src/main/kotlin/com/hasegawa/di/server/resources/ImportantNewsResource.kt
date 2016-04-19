@@ -48,11 +48,18 @@ class ImportantNewsResource(val newsDao: ImportantNewsDao, val gcmControl: GCMCo
     @OPTIONS
     fun corsPreflight() = Response.ok().build()
 
+    data class FilteredImportantNews(val title: String? = null,
+                                     val date: Long? = null,
+                                     val url: String? = null,
+                                     val tldr: String? = null)
+
     fun checkNewsCache() {
         if (newsDirty.get()) {
             synchronized(newsLock) {
                 if (newsDirty.get()) {
-                    val newsFiltered = newsDao.findAll().filter { it.published!! }
+                    val newsFiltered = newsDao.findAll().filter { it.published!! }.map {
+                        FilteredImportantNews(it.title, it.date, it.url, it.tldr)
+                    }
                     newsResponseCache = MainApplication.jacksonMapper.writeValueAsString(newsFiltered)
 
                     val news = newsDao.findAll()
